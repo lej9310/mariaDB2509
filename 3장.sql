@@ -67,7 +67,62 @@ CALL myProc(); -- 2개 탭 생성
 
 -- ========= 실습8 =========
 -- 트리거: 테이블에 부탁되어 테이블에 INSERT/UPDATE/DELETE 작업이 발생되면 실행되는 코드
+
 -- memberTBL에 값 추가
 INSERT INTO memberTBL VALUES ('Figure', '연아', '경기도 군포시 당정동');
--- 
+
+-- 주소 변경
 UPDATE membertbl SET memberAddress = '서울 강남구 역삼동' WHERE memberName = '연아';
+
+-- 추가한 값 삭제
+DELETE FROM membertbl WHERE memberName = '연아';
+
+-- 테이블 생성
+CREATE TABLE deletedMemberTBL (
+	memberID CHAR(8),
+	memberName CHAR(5),
+	memberAddress CHAR(20),
+	deletedDate DATE -- 삭제한 날짜
+);
+
+SELECT * FROM deletedMemberTBL;
+
+-- membertbl에서 값을 삭제 >> 트리거 부착 >> deletedMemberTBL에 저장
+DELIMITER //
+CREATE TRIGGER trg_deletedMemberTBL
+	AFTER DELETE  -- 삭제 후에 작동하게 지정
+		ON memberTBL -- 트리거를 부착할 테이블
+		FOR EACH ROW  -- 각 행마다 적용
+	BEGIN
+	-- OLD 테이블의 내용을 백업테이블에 삽입
+		INSERT INTO deletedMemberTBL
+			VALUES (OLD.memberID, OLD.memberName, OLD.memberAddress, CURDATE() );
+END //
+DELIMITER ;
+
+
+SELECT * FROM membertbl;
+
+-- 행 삭제
+DELETE FROM membertbl WHERE memberName = '당탕이';
+SELECT * FROM membertbl;
+
+-- 삭제된 행 >>  deletedMemberTBL 으로 이동
+SELECT * FROM deletedMemberTBL;
+
+
+-- ========= 실습9 =========
+-- 데이터베이스 백업 및 관리
+USE shopDB;
+
+SELECT * FROM producttbl;
+
+-- 데이터 날리기 
+DELETE FROM producttbl; -- WHERE절 없으면 모든 데이터 날라감
+
+SELECT * FROM producttbl;
+
+USE mysql; -- 일단 다른 DB 선택
+
+USE ShopDB;
+SELECT * FROM producttbl;
