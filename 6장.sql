@@ -40,25 +40,25 @@ USE sqlDB;
 
 -- 회원 테이블 생성
 CREATE TABLE userTbl(
-userID  CHAR(8) NOT NULL PRIMARY KEY,  -- 사용자 아이디(PK => 중복되면 안됨)
-NAME    VARCHAR(10) NOT NULL,          -- 이름
-birthYear INT NOT NULL,                -- 출생년도
-addr    CHAR(2) NOT NULL,              -- 지역(경기,서울,경남 식으로 2글자만입력)
-mobile1 CHAR(3),                       -- 휴대폰의 국번(011, 016, 017, 018, 019, 010 등)
-mobile2 CHAR(8),                       -- 휴대폰의 나머지 전화번호(하이픈제외)
-height  SMALLINT,                      -- 키
-mDate   DATE                           -- 회원 가입일
+	userID  CHAR(8) NOT NULL PRIMARY KEY,  -- 사용자 아이디(PK => 중복되면 안됨)
+	NAME    VARCHAR(10) NOT NULL,          -- 이름
+	birthYear INT NOT NULL,                -- 출생년도
+	addr    CHAR(2) NOT NULL,              -- 지역(경기,서울,경남 식으로 2글자만입력)
+	mobile1 CHAR(3),                       -- 휴대폰의 국번(011, 016, 017, 018, 019, 010 등)
+	mobile2 CHAR(8),                       -- 휴대폰의 나머지 전화번호(하이픈제외)
+	height  SMALLINT,                      -- 키
+	mDate   DATE                           -- 회원 가입일
 );
 
 -- 회원 구매 테이블
 CREATE TABLE buyTbl(
-num INT AUTO_INCREMENT NOT NULL PRIMARY KEY,    -- 순번(PK)
-userID CHAR(8) NOT NULL,                        -- 아이디(FK)  
-prodName CHAR(8) NOT NULL,                      --  물품명
-groupName CHAR(4),                              -- 분류
-price INT NOT NULL,                             -- 단가
-amount SMALLINT NOT NULL,                       -- 수량
-FOREIGN KEY (userID) REFERENCES userTbl(userID) -- 외래키 지정: 테이블 간 관계 정의&항상 유효하도록 보장
+	num INT AUTO_INCREMENT NOT NULL PRIMARY KEY,    -- 순번(PK)
+	userID CHAR(8) NOT NULL,                        -- 아이디(FK)  
+	prodName CHAR(8) NOT NULL,                      --  물품명
+	groupName CHAR(4),                              -- 분류
+	price INT NOT NULL,                             -- 단가
+	amount SMALLINT NOT NULL,                       -- 수량
+	FOREIGN KEY (userID) REFERENCES userTbl(userID) -- 외래키 지정: 테이블 간 관계 정의&항상 유효하도록 보장
 );
 -- 외래키 지정 => DB 삽입/수정 시점에 userID에 해당 값이 존재하는지 검사하고, 없는 경우 에러로 차단
 -- 외래키를 지정하지 않는 경우 실수로 입력할 시 고아 데이터 발생
@@ -103,13 +103,17 @@ USE sqlDB;
 
 SELECT * FROM usertbl;
 SELECT * FROM usertbl WHERE NAME = '김경호'; -- usertbl에서 이름이 김경호인 data만 확인
+
 -- BETWEEN ... AND
 SELECT userId, Name FROM usertbl WHERE birthYear >= 1970 AND height >= 182;
 SELECT Name, height FROM usertbl WHERE height >= 180 AND height <= 183;
+
 -- BETWEEN ... OR
 SELECT NAME, addr FROM usertbl WHERE addr = '경남' OR addr = '전남' OR addr = '경북';
+
 -- IN(...)
 SELECT NAME, addr FROM usertbl WHERE addr IN ('경남', '전남', '경북');
+
 -- LIKE
 SELECT NAME, height FROM usertbl WHERE NAME LIKE '김%';
 SELECT NAME, height FROM usertbl WHERE NAME LIKE '_종신';
@@ -125,9 +129,14 @@ SELECT NAME, height FROM usertbl WHERE height > (SELECT height FROM usertbl WHER
 SELECT NAME, height FROM usertbl WHERE height >= (SELECT height FROM usertbl WHERE addr = '경남');
 
 -- 서브 쿼리 앞에 ANY 구문 삽입
-SELECT NAME, height FROM usertbl WHERE height >= ANY (SELECT height FROM usertbl WHERE addr = '경남');
-SELECT NAME, height FROM usertbl WHERE height = ANY (SELECT height FROM usertbl WHERE addr = '경남');
-SELECT NAME, height FROM usertbl WHERE height IN (SELECT height FROM usertbl WHERE addr='경남');
+SELECT NAME, height FROM usertbl
+	WHERE height >= ANY (SELECT height FROM usertbl WHERE addr = '경남');
+
+SELECT NAME, height FROM usertbl
+	WHERE height = ANY (SELECT height FROM usertbl WHERE addr = '경남');
+
+SELECT NAME, height FROM usertbl
+	WHERE height IN (SELECT height FROM usertbl WHERE addr='경남');
 
 
 -- 원하는 순서대로 정렬하여 출력: ORDER BY =====================================
@@ -143,11 +152,15 @@ SELECT DISTINCT addr FROM usertbl;
 
 -- 출력하는 개수를 제한: LIMIT =====================================
 USE employees;
+
 SELECT emp_no, hire_date FROM employees ORDER BY hire_date ASC;
+
 -- 입사일이 오래된 직원 5명만 추출
 USE employees;
+
 -- 5개의 행만 출력
 SELECT emp_no, hire_date FROM employees ORDER BY hire_date ASC LIMIT 5;
+
 -- LIMIT 시작, 개수 / LIMIT 개수 offset 시작
 SELECT emp_no, hire_date FROM employees ORDER BY hire_date ASC LIMIT 0, 5; -- LIMIT 5 OFFSET 0
 
@@ -165,10 +178,119 @@ SELECT*FROM buytbl3;
 
 
 -- GLOUP BY & HAVING & 집계함수  =====================================
+USE employees;
+
 SELECT userID, amount FROM buytbl ORDER BY userID;
--- SUM()
+
+-- userID별 amount 합계
 SELECT userID, SUM(amount) FROM buytbl GROUP BY userID;
 
-SELECT userID AS '사용자 아이디', SUM(amount) AS '총 구매 개수' FROM buytbl GROUP BY userID;
+-- userID별 amount 합계 & 필드명 변경(AS)
+SELECT userID AS '사용자 아이디', SUM(amount) AS '총 구매 개수'
+	FROM buytbl GROUP BY userID;
+
+
+USE sqlDB;
+USE employees;
+
+-- 그룹별 평균값(AVG) 찾기
+SELECT * FROM buyTbl;
+SELECT AVG(amount) AS '평균 구매 개수' FROM buyTbl;
+SELECT userID, AVG(amount) AS '평균 구매 개수' FROM buyTbl GROUP BY userID;
+
+-- 그룹별 최대(MAX), 최소(MIN) 값 찾기
+SELECT * FROM userTbl;
+SELECT NAME, MAX(height), MIN(height) FROM userTbl;
+SELECT NAME, MAX(height), MIN(height) FROM userTbl GROUP BY Name;
+
+-- 서브쿼리 + OR로 한 번에 가져오기
+SELECT NAME, height
+	FROM userTbl
+	WHERE height = (SELECT MAX(height) FROM userTbl)
+	OR height = (SELECT MIN(height) FROM userTbl);
+
+SELECT * FROM userTbl;
+SELECT COUNT(*) FROM userTbl; -- 10
+
+-- COUNT(mobile1)에 NULL 값 제외하고 갯수
+SELECT COUNT(mobile1) AS '휴대폰이 있는 사용자' FROM userTbl; -- 8
+
+-- 
+USE sqlDB;
+USE employees;
+SELECT * FROM buyTbl;
+
+SELECT userID AS '사용자', SUM(price*amount) AS '총구매액'
+	FROM buyTbl
+	GROUP BY userID;
+
+
+-- WHERE절 >> 집계 함수 사용 불가 >> 오류
+SELECT userID AS '사용자', SUM(price*amount) AS '총구매액' 
+	FROM buyTbl
+	WHERE SUM(price*amount) > 1000 -- 오류 발생
+	GROUP BY userID;
+
+-- HAVING절 >> GROUP BY절 뒤에 집계 함수 사용
+SELECT userID AS '사용자', SUM(price*amount) AS '총구매액' 
+	FROM buyTbl
+	GROUP BY userID
+	-- HAVING절 사용
+	HAVING SUM(price*amount) > 1000; -- GROUP BY절 다음에 사용(***순서)
+
+SELECT userID AS '사용자', SUM(price*amount) AS '총구매액' 
+	FROM buyTbl
+	GROUP BY userID
+	-- HAVING절 사용
+	HAVING SUM(price*amount) > 1000 -- GROUP BY절 다음에 사용(***순서)
+	ORDER BY SUM(price*amount); -- 총구매액이 적은 사용자부터
+
+
+-- ROLLUP : 총합/중간 합계 필요 >> GROUP BY절 +  WITH ROLLUP
+SELECT num, groupName, SUM(price*amount) AS '비용'
+	FROM buyTbl
+	GROUP BY groupName, num
+	WITH ROLLUP;
+
+SELECT groupName, SUM(price*amount) AS '비용'
+	FROM buyTbl
+	GROUP BY groupName
+	WITH ROLLUP;
+	
+	
+-- 고정길이(CHAR) vs 가변길이 (VARCHAR)
+-- CHAR(n): 실제 데이터가 n보다 짧아도 남는 공간을 공백으로 채워 저장
+-- VARCHAR(n): 실제 데이터 길이만큼만 저장하고, 길이 정보를 추가로 기록
+
+USE sqlDB;
+
+CREATE TABLE testTBL1 (
+	id INT,
+	userName CHAR(3),
+	age int
+);
+
+INSERT INTO testtbl1 VALUE(1, '홍길동', 25);
+INSERT INTO testtbl1(id, userName) VALUE(2, '설현');
+INSERT INTO testtbl1(userName, age, id) VALUE('초아', 26, 3);
+--  DELETE FROM testtbl1 WHERE id = 3;  -- 잘못 작성한 값 제거
+
+SELECT * FROM testtbl1;
+
+
+-- 데이터의 삽입 : INSERT =======================================
+USE sqlDB;
+
+CREATE TABLE testTBL2(
+	id INT AUTO_INCREMENT PRIMARY KEY,
+	userName CHAR(3),
+	age int
+);
+
+INSERT INTO testtbl2 VALUES (NULL, '지민', 25);
+INSERT INTO testtbl2 VALUES (NULL, '유나', 22);
+INSERT INTO testtbl2 VALUES (NULL, '유경', 21);
+SELECT * FROM testtbl2;
+
 
 -- ======= 실습 ========
