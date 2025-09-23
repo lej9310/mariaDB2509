@@ -243,10 +243,343 @@ SELECT * FROM customers ORDER BY Country, CustomerName;
 SELECT * FROM customers ORDER BY Country ASC, CustomerName DESC;
 
 
--- IS NULL / IS NOT NULL 연산자 =================================================================
+-- IS NULL / IS NOT NULL 구문  =================================================================
+
 -- -- Address 필드 중 빈값
 SELECT CustomerName, ContactName, Address FROM customers WHERE Address IS NULL;
 
 -- Address 필드 중 빈값이 아닌 값 출력
 SELECT CustomerName, ContactName, Address FROM customers WHERE Address IS NOT NULL;
+
+
+-- UPDATE 문 =================================================================
+
+-- 변경 전: ContactName = 'Maria Anders', City = 'Berlin'
+SELECT * FROM customers WHERE CustomerID = 1;
+
+-- 첫 번째 고객(CustomerID = 1)을 새로운 연락처 와 새로운 도시로 업데이트
+UPDATE customers
+	SET ContactName = 'Alfred Schmidt', City = 'Frankfurt'
+	WHERE CustomerID = 1;
+
+
+-- 변경 전: Country = 'Mexico'인 데이터의 PostalCode 확인
+SELECT PostalCode, Country FROM Customers WHERE Country = 'Mexico';
+
+-- 여러 레코드 업데이트
+UPDATE customers
+	SET PostalCode = '00000'
+	WHERE Country = 'Mexico';
+
+
+-- DELETE 문 =================================================================
+
+-- 고객 "Alfreds Futterkiste"를 삭제
+DELETE FROM Customers WHERE CustomerName = 'Alfreds Futterkiste';
+SELECT * FROM customers;
+
+-- 원래 데이터 값 삽입(복구)
+INSERT INTO customers VALUES (
+	1, 'Alfreds Futterkiste', 'Maria Anders', 'Obere Str. 57', 'Berlin', '12209', 'Germany'
+);
+
+-- CustomerID로 정렬(temporary) >> 정렬된 순서로 테이블 복제 >> 교체
+SELECT * FROM Customers ORDER BY CustomerID;
+
+-- 1. 정렬된 순서로 테이블 복제(Customers_new)
+CREATE TABLE Customers_new LIKE Customers;
+
+INSERT INTO Customers_new
+	SELECT * FROM Customers
+	ORDER BY CustomerID;
+
+-- 2. 교체
+RENAME TABLE Customers TO Customers_backup,
+	Customers_new TO customers;
+	
+-- 3. 교체 후 확인
+SELECT * FROM customers; 
+
+-- 4. 백업 테이블 정리(삭제)
+DROP TABLE Customers_backup;
+
+
+-- 테이블의 모든 행 삭제
+-- DELETE FROM Customers;
+
+
+--  LIMIT 절 :  반환할 레코드 수를 지정 ===========================================
+
+-- "Customers" 테이블에서 처음 세 개의 레코드를 선택
+SELECT * FROM Customers LIMIT 3;
+
+-- 레코드 4에서 시작하여 3개의 레코드만 반환 >> OFFSET 3
+SELECT * FROM Customers
+	LIMIT 3 OFFSET 3;
+
+-- "Germany"인 "Customers" 테이블에서 처음 세 개의 레코드
+SELECT * FROM Customers
+	WHERE Country='Germany'
+	LIMIT 3;
+
+-- 세 개의 레코드를 반환하기 전에 국가별로 고객을 정렬
+SELECT * FROM Customers
+ORDER BY Country
+LIMIT 3;
+
+
+-- MIN()/MAX() 함수 =================================================================
+
+SELECT * FROM products;
+
+-- 가장 저렴한 제품의 가격 찾기
+SELECT MIN(Price) AS SmallestPrice FROM products;
+
+-- 가장 비싼 제품의 가격 찾기
+SELECT MAX(Price) AS LargestPrice FROM Products;
+
+
+-- COUNT(), AVG() 및 SUM() 함수 ================================================
+SELECT COUNT(*) FROM products;
+
+SELECT COUNT(productID) FROM products;
+
+SELECT AVG(Price) FROM Products;
+
+SELECT SUM(Quantity) FROM orderdetails;
+
+
+-- LIKE 연산자 =================================================================
+
+--  "a"로 시작하는 CustomerName을 가진 모든 고객을 선택
+SELECT * FROM Customers WHERE CustomerName LIKE 'a%'; -- 4개
+
+-- CustomerName이 "a"로 끝나는 모든 고객을 선택
+SELECT * FROM customers WHERE CustomerName LIKE '%a'; -- 7개
+
+--  CustomerName에 "or"가 있는 모든 고객을 선택
+SELECT * FROM Customers WHERE CustomerName LIKE '%or%';  -- 11개
+
+-- 두 번째 위치에 "r"이 있는 CustomerName을 가진 모든 고객을 선택
+SELECT * FROM Customers WHERE CustomerName LIKE '_r%';  -- 11개
+
+-- "a"로 시작하고 길이가 3자 이상인 CustomerName을 가진 모든 고객을 선택
+SELECT * FROM Customers WHERE CustomerName LIKE 'a__%'; --4개
+
+-- "a"로 시작하고 "o"로 끝나는 ContactName을 가진 모든 고객을 선택
+SELECT * FROM customers WHERE ContactName LIKE 'a%O'; -- 3개
+
+-- "a"로 시작하지 않는 CustomerName을 가진 모든 고객을 선택
+SELECT * FROM customers WHERE CustomerName NOT LIKE 'a%'; -- 87개
+
+
+-- 와일드카드 =================================================================
+
+--  "ber"로 시작하는 City를 가진 모든 고객을 선택
+SELECT * FROM customers WHERE City LIKE 'ber%'; -- 3개
+
+-- "es"를 포함하는 City를 가진 모든 고객을 선택
+SELECT * FROM customers WHERE City LIKE '%es%'; -- 9개
+
+-- City의 첫 번쨰 글자가 아무 문자로 시작하고 뒤에 "ondon"이 붙는 모든 고객을 선택
+SELECT * FROM customers WHERE City LIKE '_ondon';  -- 6개
+
+-- "L"로 시작하고, 그 뒤에 아무 문자나 오고, 그 뒤에 "n"이 오고, 그 뒤에 아무 문자나 오고, 그 뒤에 "on"이 오는 도시를 가진 모든 고객을 선택
+SELECT * FROM customers WHERE City LIKE 'L_n_on';  -- 6개
+
+
+-- IN 연산자 =================================================================
+-- customers 테이블에서 Country가 "독일", "프랑스" 또는 "영국"인 모든 고객을 선택
+SELECT * FROM customers WHERE Country 
+	IN('Germany', 'France', 'UK'); -- 29개
+
+-- Country가 "독일", "프랑스" 또는 "영국"이 아닌(NOT) 모든 고객을 선택
+SELECT * FROM customers WHERE Country 
+	NOT IN('Germany', 'France', 'UK'); -- 62개
+
+-- 공급업체(Suppliers)와 동일한 국가에 있는 모든 고객을 선택
+SELECT * FROM Customers WHERE Country 
+	IN (SELECT Country FROM suppliers);
+
+SELECT DISTINCT country FROM Customers;
+SELECT DISTINCT country FROM suppliers;
+
+-- 공급업체(Suppliers)의  국가를 포함하지 않는 모든 고객을 선택
+SELECT * FROM Customers WHERE Country 
+	NOT IN (SELECT Country FROM suppliers);
+
+
+-- BETWEEN / NOT BETWEEN 연산자 =================================================================
+
+-- 가격이 10~20 사이인 모든 제품을 선택
+SELECT * FROM Products WHERE Price
+	BETWEEN 10 AND 20;
+	
+-- 가격이 10~20 범위를 벗어나는(NOT) 제품
+SELECT * FROM Products WHERE Price
+	NOT BETWEEN 10 AND 20;
+
+-- 가격이 10~20인 모든 제품 & CategoryID가 1, 2, 3인 제품은 제외
+SELECT * FROM products WHERE Price 
+	BETWEEN 10 AND 20
+	AND CategoryID NOT IN (1,2,3);
+
+-- "Carnarvon Tigers"와 "Mozzarella di Giovanni" 사이의 ProductName을 가진 모든 제품을 선택 후 정렬
+SELECT * FROM products
+	WHERE ProductName
+	BETWEEN 'Carnarvon Tigers' AND 'Mozzarella di Giovanni'
+	ORDER BY ProductName;
+
+-- "Carnarvon Tigers"와 "Chef Anton's Cajun Seasoning" 사이 ProductName을 가진 모든 제품
+SELECT * FROM products
+	WHERE ProductName
+	BETWEEN "Carnarvon Tigers" AND "Chef Anton's Cajun Seasoning"
+	ORDER BY ProductName;
+
+-- Orders 테이블에서 OrderDate가 '01-July-1996'과 '31-July-1996' 사이인 모든 주문
+SELECT * FROM orders
+	WHERE OrderDate
+	BETWEEN '1996-07-01' AND '1996-07-31'
+	ORDER BY OrderDate;
+
+
+-- 별칭(alias) >> AS 키워드 ============================================================
+--  테이블/테이블의 열에 임시 이름을 부여하는 데 사용
+-- 별칭은 해당 쿼리가 지속되는 동안만 존재
+
+-- 1. 열 별칭 예제 ====
+-- CustomerID 열에 대한 별칭 & CustomerName 열에 대한 별칭 생성
+SELECT CustomerID AS ID, CustomerName AS Customer
+	FROM customers;
+
+-- CustomerName 열과 ContactName 열에 대한 별칭 생성
+SELECT CustomerName AS Customer, ContactName AS "Contact Person"
+	FROM Customers;
+
+-- 4개의 열(Address, PostalCode, City, Country)을 결합 => "Address" 별칭 생성
+SELECT CustomerName, -- 고객 이름 필드는 그대로 가져오기
+	-- CONCAT_WS(): “Concatenate With Separator”의 줄임말로, 지정한 구분자와 함께 여러 값을 이어 붙이는 함수
+	--	첫 번째 인자: 값들 사이에 넣을 구분자
+	-- 이후 인자: 이어 붙일 필드 >> Address, PostalCode, City, Country
+	--	CONCAT_WS() NULL 값 처리 >> 자동 Skip(', ' 구분자도 함께 생략)
+	CONCAT_WS(', ', Address, PostalCode, City, Country) AS Address
+	FROM Customers;
+
+
+-- 2. 테이블 별칭 예제 ====
+-- CustomerID=4(CustomerName=Around the Horn)인 고객의 모든 주문 검색 =>
+-- "Customers" 테이블과 "Orders" 테이블을 사용하고, 각각 "c"와 "o"라는 테이블 별칭을 지정
+SELECT c.CustomerID, c.CustomerName, o.OrderID, o.OrderDate
+	FROM Customers AS c, Orders AS o -- 별침 지정
+	-- 필터 및 조인 조건
+	-- 첫 번째 조건: 고객명이 ‘Around the Horn’인 고객만 선택
+	-- 두 번째 조건: Customers의 CustomerID와 Orders의 CustomerID(외래키)가 같을 때만 조인(행 연결)
+	WHERE c.CustomerName = 'Around the Horn' AND c.CustomerID = o.CustomerID;
+
+
+-- 조인(JOIN) ============================================================
+-- 두 개 이상의 테이블에서 관련된 열을 기준으로 행을 결합
+-- INNER JOIN: 두 테이블 모두에서 일치하는 값이 있는 레코드를 반환합니다.
+-- LEFT JOIN: 왼쪽 테이블의 모든 레코드와 오른쪽 테이블의 일치하는 레코드를 반환합니다.
+-- RIGHT JOIN: 오른쪽 테이블의 모든 레코드와 왼쪽 테이블의 일치하는 레코드를 반환합니다.
+-- CROSS JOIN: 두 테이블의 모든 레코드를 반환합니다.
+
+-- "CustomerID"로 조인
+SELECT Orders.OrderID, Customers.CustomerName, Orders.OrderDate
+	FROM Orders
+	INNER JOIN Customers
+		ON Orders.CustomerID = Customers.CustomerID;
+	
+SELECT o.OrderID, c.CustomerName, o.OrderDate
+	FROM Orders AS o           -- 별침 지정
+	INNER JOIN Customers AS c  -- 별침 지정
+		ON o.CustomerID = c.CustomerID;  -- related column >> CustomerID
+
+
+-- 조인(JOIN) >> INNER JOIN 키워드 ======
+-- 세 개의 테이블 조인 >> 
+-- 고객 및 운송업체 정보가 있는 모든 주문을 선택
+SELECT o.OrderID, c.CustomerName, s.ShipperName
+	FROM ((orders AS o        -- 별침 지정
+	INNER JOIN Customers AS c -- 별침 지정
+		ON o.CustomerID = c.CustomerID)  -- related column >> CustomerID
+	INNER JOIN Shippers AS s  -- 별침 지정
+		ON o.ShipperID = s.ShipperID);   -- related column >> ShipperID
+
+
+-- 조인(JOIN) >> LEFT JOIN 키워드 ======
+-- 왼쪽 테이블(Customers)을 기준으로, 오른쪽 테이블(Orders)에 일치하는 레코드가 있는 경우 반환
+-- 모든 고객과 그들이 가진 주문
+SELECT c.CustomerID, c.CustomerName, o.OrderID
+	FROM customers AS c
+	LEFT JOIN Orders AS o
+		ON c.CustomerID = o.CustomerID   -- related column >> CustomerID
+	ORDER BY c.CustomerName;
+
+
+-- 조인(JOIN) >> RIGHT JOIN 키워드 ======
+-- 모든 직원과 그들이 주문한 모든 주문을 반환
+SELECT o.OrderID, e.LastName, e.FirstName
+	FROM orders AS o
+	RIGHT JOIN employees AS e
+		ON o.EmployeeID = e.EmployeeID   -- related column >> EmployeeID
+	ORDER BY o.OrderID;
+
+
+-- 조인(JOIN) >> CROSS JOIN 키워드 ======
+-- 두 테이블의 모든 레코드 반환 >> 합집합
+
+-- 모든 고객과 모든 주문
+SELECT c.CustomerName, o.OrderID
+	FROM customers AS c
+	CROSS JOIN orders AS o;
+
+-- 모든 고객아이디과 모든 주문날짜
+SELECT c.CustomerID, o.OrderDate
+	FROM customers AS c
+	CROSS JOIN orders AS o;
+	
+
+-- 조인(JOIN) >> SELF JOIN 키워드 ======
+
+-- Customers 테이블 내에서 같은 도시에 있는 고객을 매칭
+SELECT A.CustomerName AS CustomerName1, B.CustomerName AS CustomerName2, A.City
+	-- Customers 테이블을 두 번 참조하여 각각 A, B라는 별칭으로 사용
+	FROM customers A, customers B  
+	-- 같은 고객을 자기 자신과 매칭하는 것을 방지
+	WHERE A.CustomerID <> B.CustomerID\
+	-- 두 고객이 같은 도시에 거주하는 경우만 매칭
+	AND A.City = B.City
+	ORDER BY A.City;
+
+-- 위와 동일코드로 아래의 현대적 표기를 권장 
+SELECT A.CustomerName AS CustomerName1, B.CustomerName AS CustomerName2, B.City
+	FROM customers AS A
+	JOIN customers AS B 
+		ON A.City = B.City
+		AND A.CustomerID <> B.CustomerID	
+	ORDER BY A.City;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

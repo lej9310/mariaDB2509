@@ -2,7 +2,7 @@ SHOW DATABASES;
 USE exDB;
 SHOW TABLES;
 
-drop TABLE Orders;
+-- drop TABLE Orders;
 
 CREATE TABLE Orders (
 	OrderID INT,

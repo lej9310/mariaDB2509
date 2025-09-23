@@ -2,7 +2,7 @@ SHOW DATABASES;
 USE exDB;
 SHOW TABLES;
 
-drop TABLE customers;
+-- drop TABLE customers;
 
 CREATE TABLE Customers (
 	CustomerID INT,

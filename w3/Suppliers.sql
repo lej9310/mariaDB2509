@@ -2,7 +2,7 @@ SHOW DATABASES;
 USE exDB;
 SHOW TABLES;
 
-Drop TABLE suppliers;
+-- Drop TABLE suppliers;
 
 CREATE TABLE Suppliers (
 	SupplierID INT,
