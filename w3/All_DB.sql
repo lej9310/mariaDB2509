@@ -89,6 +89,7 @@ SELECT * FROM Products;
 -- DELETE FROM Products WHERE ProductID = 12;
 
 -- 행 삽입 -  작은따옴표 두 개로 표기하면 하나의 작은따옴표로 해석
+-- 도구 >> CSV 파일 가져오기
 INSERT INTO Products VALUES(1, 'Chais', 1, 1, '10 boxes x 20 bags', 18.00);
 INSERT INTO Products VALUES(2, 'Chang', 1, 1,	'24 - 12 oz bottles', 19.00);
 INSERT INTO Products VALUES(3, 'Aniseed Syrup',	1,	2,	'12 - 550 ml bottles', 10.00);
@@ -479,10 +480,10 @@ SELECT c.CustomerID, c.CustomerName, o.OrderID, o.OrderDate
 
 -- 조인(JOIN) ============================================================
 -- 두 개 이상의 테이블에서 관련된 열을 기준으로 행을 결합
--- INNER JOIN: 두 테이블 모두에서 일치하는 값이 있는 레코드를 반환합니다.
--- LEFT JOIN: 왼쪽 테이블의 모든 레코드와 오른쪽 테이블의 일치하는 레코드를 반환합니다.
--- RIGHT JOIN: 오른쪽 테이블의 모든 레코드와 왼쪽 테이블의 일치하는 레코드를 반환합니다.
--- CROSS JOIN: 두 테이블의 모든 레코드를 반환합니다.
+-- INNER JOIN: 두 테이블 모두에서 일치하는 값이 있는 레코드 반환
+-- LEFT JOIN: 왼쪽 테이블의 모든 레코드와 오른쪽 테이블의 일치하는 레코드를 반환
+-- RIGHT JOIN: 오른쪽 테이블의 모든 레코드와 왼쪽 테이블의 일치하는 레코드를 반환
+-- CROSS JOIN: 두 테이블의 모든 레코드를 반환
 
 -- "CustomerID"로 조인
 SELECT Orders.OrderID, Customers.CustomerName, Orders.OrderDate
@@ -556,21 +557,337 @@ SELECT A.CustomerName AS CustomerName1, B.CustomerName AS CustomerName2, A.City
 SELECT A.CustomerName AS CustomerName1, B.CustomerName AS CustomerName2, B.City
 	FROM customers AS A
 	JOIN customers AS B 
-		ON A.City = B.City
+		ON A.City = B.City 
 		AND A.CustomerID <> B.CustomerID	
 	ORDER BY A.City;
 
 
+-- UNION 연산자: 중복 행 자동 제거하여 반환 ==================================================
+-- 두 개 이상의 SELECT 결과 집합을 수직으로 합쳐 하나의 결과 집합으로 반환
+-- 사용 조건:
+	-- 각 SELECT절이 반환하는 컬럼 개수가 동일
+	-- 동일 위치의 컬럼끼리 데이터 타입 호환(예: 정수-정수, 문자-문자)
+	-- 최종 결과의 컬럼명: 첫 번째 SELECT의 컬럼명
+	-- 정렬: 마지막에 한 번만 ORDER BY 사용
+
+SHOW DATABASES;
+USE exdb;
+
+-- "Customers"와 "Suppliers" 테이블에서 도시(고유값만)를 반환
+SELECT City FROM Customers
+	UNION                       -- UNION: 중복 제거하여 합치기 <> UNION ALL: 중복값 포함
+	SELECT City FROM Suppliers
+	ORDER BY City;              -- 정렬은 마지막에 한 번  >> 중복값 없음 확인
+
+-- where절 사용
+-- "Customers"와 "Suppliers" 테이블에서 독일(고유값만) 반환
+SELECT City, Country FROM Customers
+	WHERE Country = 'Germany'
+	UNION                       -- UNION: 중복 제거하여 합치기 <> UNION ALL: 중복값 포함
+	SELECT City, Country FROM Suppliers
+	WHERE Country = 'Germany'
+	ORDER BY City;              -- 정렬은 마지막에 한 번 >> 중복값 없음 확인
+
+-- 모든 고객과 공급업체 나열
+SELECT 'Customer' AS Type, ContactName, City, Country  -- 'Customer': 고정 문자열 값 >> 별칭 설정
+	FROM Customers
+	UNION                       -- UNION: 중복 제거하여 합치기 <> UNION ALL: 중복값 포함
+	-- 첫 번째 SELECT의 컬럼명 규칙에 따름 >> 'Suppliers'가 Type으로 
+	SELECT 'Suppliers', ContactName, City, Country
+	FROM Suppliers;
 
 
+-- UNION ALL 연산자: 중복 포함해 모두 반환 ==================================================
+
+-- "Customers"와 "Suppliers" 테이블에서 도시(중복값 포함) 반환 
+SELECT City FROM Customers
+	UNION ALL                   -- UNION ALL: 중복값 포함 <> UNION: 중복 제거하여 합치기 
+	SELECT City FROM Suppliers
+	ORDER BY City;              -- >> 정렬해서 중복값 확인
+	
+-- WHERE절 사용
+-- "Customers"와 "Suppliers" 테이블에서 독일 도시(중복값 포함) 반환
+SELECT City, Country FROM Customers
+	WHERE Country = 'Germany'
+	UNION ALL                   -- UNION ALL: 중복값 포함 <> UNION: 중복 제거하여 합치기 
+	SELECT City, Country FROM Suppliers
+	WHERE Country = 'Germany'
+	ORDER BY City;              -- >> 정렬해서 중복값 확인
 
 
+-- GROUP BY문 ==================================================
+-- 집계 함(COUNT(), MAX(), MIN(), SUM(), AVG())와 함께 사용
+
+-- 각 국가의 고객 수를 나열 
+SELECT Country AS 국가, COUNT(CustomerID) AS 고객수  -- 컬러명에 빈칸 X >> 오류 
+	FROM customers
+	GROUP BY Country
+	ORDER BY COUNT(CustomerID) DESC; -- 고객 수가 높은 순으로 정렬
+
+--  각 운송업체가 보낸 주문 수 집계 >> 내림차순으로 정렬 >> 상위 1건만 선택
+SELECT s.ShipperName AS 운송업체, COUNT(o.OrderID) AS 주문수
+	FROM orders AS o
+	LEFT JOIN shippers AS s
+		ON o.ShipperID = s.ShipperID
+	GROUP BY s.ShipperName         -- 운송업체별 주문수 집계
+	ORDER BY 주문수 DESC           -- 내림차순 정렬
+	LIMIT 1;                       -- 상위 1건 선택
 
 
+-- HAVING 절 ==================================================
+-- WHERE: 그룹화(집계) 이전에 행(Row)을 필터링 >>  개별 행 기준 조건만 사용 가능 >> 집계함수 사용 불가
+-- HAVING: GROUP BY로 그룹이 생성된 이후, 집계 결과를 기준으로 그룹을 필터링
+
+-- 국가별  고객수 나열 >> 고객이 5명 이상인 국가만 선택
+SELECT Country, COUNT(CustomerID) AS NumOfCustomer  -- 함수와 괄호 사이 띄지 말것 >> Count () 오류
+	FROM Customers
+	GROUP BY Country
+	HAVING COUNT(CustomerID) > 5  -- HAVING절 >> 집계 결과 필터링
+	ORDER BY NumOfCustomer DESC;  -- 고객 수가 높은 순으로 정렬
+
+-- 주문이 10건 이상인 직원의 성과 주문수 조회
+SELECT e.LastName AS 이름_성, COUNT(o.OrderID) AS 주문수
+	FROM (orders AS o
+	INNER JOIN employees AS e
+		ON o.EmployeeID = e.EmployeeID)
+	GROUP BY 이름_성
+	HAVING 주문수 > 10     -- HAVING절 >> 집계 결과 필터링
+	ORDER BY 주문수 DESC;  -- 내림차순
+
+-- WHERE절과 HAVING절 사용	
+-- 성이 "Davolio" 또는 "Fuller"이고 주문이 25건 이상인 직원 조회
+SELECT e.LastName AS 이름_성, COUNT(o.OrderID) AS 주문수
+	FROM orders AS o
+	INNER JOIN employees AS e
+	ON o.EmployeeID = e.EmployeeID
+	WHERE LastName = 'Davolio' OR LastName = 'Fuller' -- WHERE절 >> 행 필터링
+	GROUP BY 이름_성
+	HAVING 주문수 > 25;                               -- HAVING절 >> 집계 결과 필터링
 
 
+-- EXISTS 연산자: 존재 여부 판단 ==================================================
+-- 하위 쿼리에 레코드가 있는지 테스트
+-- 하위 쿼리가 하나 이상의 레코드 >> TRUE 반환
+
+-- TRUE를 반환 >> 제품 가격이 20 미만인 공급업체를 필터링  => price 컬럼은 없음
+SELECT s.SupplierName
+	FROM suppliers AS s
+	WHERE EXISTS (      -- 존재 여부만 판단
+		SELECT ProductName
+		FROM products AS p
+		WHERE p.SupplierID = s.SupplierID AND p.Price < 20
+		)
+		ORDER BY s.SupplierName;
+
+-- 조인으로 조건 필터링 후 공급업체와 가격 둘다 보기
+SELECT s.SupplierName, p.Price	
+	FROM suppliers AS s
+	JOIN products AS p
+		ON	p.SupplierID = s.SupplierID AND p.Price < 20
+	ORDER BY s.SupplierName;
+		
+--  제품 가격이 22인 공급업체 필터링 >> New Orleans Cajun Delights
+SELECT supplierName
+	FROM suppliers AS s
+	WHERE EXISTS (
+		SELECT ProductName
+		FROM products AS p
+		WHERE p.SupplierID = s.SupplierID  AND p.price = 22
+		);
 
 
+-- ANY / ALL 연산자 ==================================================
+
+-- ANY: 하위 쿼리 값 중 하나라도 조건 충족 >> TRUE
+--  OrderDetails 테이블에서 Quantity가 10인 레코드가 하나라도 있으면 Products 테이블의 ProductName을나열
+SELECT * FROM orderdetails;
+SELECT * FROM Products;
+
+SELECT ProductName
+	FROM products
+	WHERE ProductID = ANY (  -- ANY: 하나라도 조건 충족 <> ALL: 모든 조건 충족
+		SELECT ProductID
+		FROM orderdetails
+		WHERE Quantity = 10
+		)
+	ORDER BY ProductName;
+
+-- JOIN
+-- Orderdetails 테이블의 수량이 10인 상품의 ProductID를 추출해 Products 테이블과 매칭해서 상품명과 수량 컬럼 나열
+-- 동일 상품을 수량 10으로 여러번 주문했으면 중복 행  >> DISTINCT 사용
+SELECT DISTINCT p.ProductName, o.Quantity 
+	FROM products AS p
+	JOIN orderdetails AS o
+		ON o.ProductID = p.ProductID
+	WHERE o.Quantity = 10;
+
+-- OrderDetails 테이블에서 Quantity가 99보다 큰 레코드가 하나라도 있으면 Products 테이블의 ProductName을 나열
+SELECT ProductName
+	FROM products
+	WHERE ProductID = ANY(  -- ANY: 하나라도 조건 충족 <> ALL: 모든 조건 충족
+		SELECT ProductID
+		FROM orderdetails
+		WHERE Quantity > 99
+		)
+	ORDER BY ProductName;
+	
+-- OrderDetails 테이블에서 Quantity가 1000보다 큰 레코드가 하나라도 있으면 Products 테이블의 ProductName 나열
+SELECT * FROM orderdetails WHERE Quantity > 1000; -- 레코드 없음 >> FALSE
+
+SELECT ProductName
+	FROM Products
+	WHERE ProductID = ANY(  -- ANY: 하나라도 조건 충족 <> ALL: 모든 조건 충족
+		SELECT ProductID
+		FROM OrderDetails
+		WHERE Quantity > 1000
+		)
+	ORDER BY ProductName;
+
+-- 모든 제품 이름을 나열
+SELECT ALL ProductName
+	FROM Products
+	WHERE TRUE;
+
+-- ALL: 모든 하위 쿼리 값이 조건을 충족하는 경우 >> TRUE
+-- OrderDetails 테이블에서 Quantity = 10인 모든 행의 ProductID와 “모두 동일한지” 비교하여, 그 값들과 모두 같을 때만 해당 ProductName을 추출
+SELECT ProductName
+	FROM products
+	WHERE ProductID = ALL( -- ALL: 하위 쿼리의 모든 조건을 충족 >> 결과: FALSE
+	SELECT ProductID
+		FROM OrderDetails
+		WHERE Quantity = 10
+		);
+
+
+-- CASE문 ==================================================
+-- 위에서 아래 순서로 조건 평가
+-- 어떤 WHEN도 만족하지 않으면 ELSE 절의 값을 반환
+
+-- 수량 조건에 따라 수량텍스트 삽입
+SELECT OrderID, Quantity,
+	CASE
+		WHEN Quantity > 30 THEN 'The quantity is greater than 30'
+		WHEN Quantity = 30 THEN 'The quantity is 30'
+		ELSE 'The quantity is under 30'  -- ELSE: 위 조건에 모두 해당하지 않는 경우
+	END AS QuantityText  -- END: CASE 표현식의 끝 / CASE 표현식 결과를 QuantityText로 별칭
+	FROM orderdetails
+	ORDER BY Quantity;
+	
+SELECT o.OrderID, SUM(o.Quantity) AS QtySum,
+	CASE
+		WHEN SUM(o.Quantity) > 30 THEN 'The count is greater than 30'
+		WHEN SUM(o.Quantity) = 30 THEN 'The count is 30'
+		ELSE 'The quantity is under 30'
+	END AS QunatityText
+	FROM orderdetails AS o
+	GROUP BY o.OrderID
+	ORDER BY QtySUM DESC
+	LIMIT 10;
+
+-- 고객을 도시별로 정렬(도시가 NULL이면 국가별로 정렬)
+SELECT CustomerName, City, Country
+	FROM customers
+	ORDER BY
+	(CASE
+		WHEN City IS NULL THEN Country
+		ELSE City
+	END
+	);
+
+
+-- Null 함수: IFNULL() /  COALESCE() ==================================================
+-- 데이터베이스 exdb 내에서 컬럼명이 Price인 테이블 찾기
+SELECT table_schema, table_name, column_name
+FROM information_schema.columns
+WHERE column_name = 'UnitsInStock'
+AND table_schema = 'exdb';
+
+CREATE TABLE Products_new(
+	P_Id INT PRIMARY KEY ,
+	ProductName VARCHAR(20),
+	UnitPrice DECIMAL(5,2),
+	UnitsInStock INT,
+	UnitsOnOrder INT
+);
+
+SELECT * FROM products_new;
+
+INSERT INTO products_new VALUES(1, 'Jarlsberg', 10.45, 16, 15);
+INSERT INTO products_new VALUES(2, 'Mascarpone', 32.56, 23, NULL);
+INSERT INTO products_new VALUES(3, 'Gorgonzola', 15.67, 9, 20);
+
+SELECT ProductName, UnitPrice * (UnitsInStock + UnitsOnOrder) AS TotalPrice
+	FROM products_new;
+
+-- IFNULL() 함수: NULL인 경우 대체 값 반환 >> UnitsOnOrder가 NUlL인 경우 0을 반환
+SELECT ProductName, UnitPrice * (UnitsInStock + IFNULL(UnitsOnOrder,0)) AS TotalPrice
+	FROM products_new;
+
+-- COALESCE() 함수: NULL인 경우 대체 값 반환 >> UnitsOnOrder가 NUlL인 경우 0을 반환
+SELECT ProductName, UnitPrice * (UnitsInstock + COALESCE(UnitsOnOrder, 0))
+	FROM products_new;
+
+
+-- 연산자 ===========================================================================
+
+-- ALL
+-- products 중에서 Price가 500을 초과하는 상품(결과: NULL)보다 더 비싼 상품 >> 전체 레코드 추출: 총 77개
+-- “Price > ALL(서브쿼리)”에서 서브쿼리가 빈 집합(NULL)이면 비교는 항상 TRUE가 되어 전체 레코드가 추출
+SELECT COUNT(*) AS 총계_가격_500초과
+	FROM products
+	WHERE Price > ALL(
+			SELECT Price
+			FROM products
+			WHERE Price > 500
+			)
+	ORDER BY Price DESC;
+
+-- AND
+SELECT * FROM customers
+	WHERE City = "London" AND Country = "UK";  -- 6개
+
+-- ANY
+-- products 중에서 Price가 50을 초과하는 상품보다 더 비싼 상품
+SELECT * FROM products
+	WHERE Price > ANY (
+		SELECT Price
+		FROM Products
+		WHERE Price > 50  -- 6개
+	);
+
+-- BETWEEN
+SELECT * FROM products
+	WHERE price
+	BETWEEN 50 AND 60; -- 2개
+
+-- EXISTS
+SELECT * FROM products 
+	WHERE EXISTS (
+		SELECT price
+		FROM Products
+		WHERE Price > 50
+		)
+	ORDER BY Price DESC
+	LIMIT 20;
+
+-- IN
+SELECT * FROM customers
+	WHERE City IN ('Paris', 'London')
+	ORDER BY City;  -- 8개
+
+
+SELECT COUNT(*) FROM customers; -- 총 91
+
+-- LIKE
+SELECT COUNT(*) FROM customers
+	WHERE City LIKE 's%'; -- 12개
+
+-- NOT LIKE
+SELECT COUNT(*) FROM customers
+	WHERE City NOT LIKE 's%'; -- 79개
+
+-- OR
+-- SOME
 
 
 
