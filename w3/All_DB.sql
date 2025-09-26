@@ -70,7 +70,6 @@ SELECT * FROM customers WHERE Country = 'Mexico';
 -- CustomerID 필드 중에 1 값 모두 찾기
 SELECT * FROM customers WHERE CustomerID = 1;
 
-
 -- Procuct 테이블 생성 및 값 추가
 CREATE TABLE Products(
 	ProductID int,
@@ -81,7 +80,7 @@ CREATE TABLE Products(
 	Price DECIMAL(6,2)
 )
 
-drop TABLE Products;
+DROP TABLE Products;
 
 SELECT * FROM Products;
 
@@ -759,9 +758,67 @@ SELECT ProductName
 		);
 
 
--- CASE문 ==================================================
+-- INSERT INTO SELECT문 ==================================================
+-- 테이블의 데이터를 복사 => 다른 테이블에 삽입
+SELECT * FROM customers; -- 91
+SELECT * FROM suppliers; -- 29
+
+-- suppliers 테이블의 열을 선택&복사해서 customers 테이블에 삽입
+INSERT INTO customers (CustomerName, City, Country)
+	SELECT SupplierName, City, Country
+	FROM suppliers; -- 120
+
+-- suppliers 테이블의 전체 열을 선택&복사해서 customers 테이블에 삽입
+INSERT INTO customers (CustomerName, ContactName, Address, City, PostalCode, Country)
+	SELECT SupplierName, ContactName, Address, City, PostalCode, Country
+	FROM suppliers;
+SELECT * FROM customers; -- 149개
+
+-- suppliers 테이블의 조건열(나라=독일)을 선택&복사해서 customers 테이블에 삽입
+INSERT INTO customers (CustomerName, City, Country)
+	SELECT SupplierName, City, Country
+	FROM suppliers
+	WHERE Country = 'Germany';
+SELECT * FROM customers; -- 152개
+
+
+-- CASE문 ====================================================================================================
 -- 위에서 아래 순서로 조건 평가
 -- 어떤 WHEN도 만족하지 않으면 ELSE 절의 값을 반환
+
+CREATE TABLE orderdetails2 AS
+	SELECT * FROM orderdetails;
+SELECT * FROM orderdetails2;
+SHOW TABLES;
+
+-- 방법1. 새로운 열 추가 
+-- 1) orderdetails 수량텍스트(Quantity_TEXT)열 추가 >> ALTER TABLE - ADD  =>
+ALTER TABLE orderdetails2
+	ADD Quantity_TEXT VARCHAR(50);
+orderdetails3
+
+-- 2) 값 채우기 >> UPDATE - SET & CASE WHEN - ELSE
+UPDATE orderdetails2
+	SET Quantity_TEXT = CASE 
+		WHEN Quantity > 30 THEN 'The quantity is greater than 30'
+		WHEN Quantity = 30 THEN 'The quantity is 30'
+		ELSE 'The quantity is under 30'
+	END AS Quantity_TEXT
+	WHERE OrderDetailID IS NOT NULL;
+SELECT * FROM orderdetails2;
+		
+-- 방법2. Quantity_TEXT 값을 뷰에서 계산하여 포함하는 뷰 생성
+CREATE OR REPLACE VIEW orderdetails3 AS                -- orderdetails3 뷰 생성
+	SELECT o2.OrderDetailID, o2.ProductID, o2.Quantity, -- 마지막 콤마(,) 빠지면 >> 오류
+	CASE
+		WHEN o2.Quantity > 30 THEN 'The quantity is greater than 30'
+		WHEN o2.Quantity = 30 THEN 'The quantity is 30'
+		ELSE 'The quantity is under 30'
+		END AS Quantity_TEXT
+	FROM orderdetails2 AS o2
+	INNER JOIN products AS p                            -- products 테이블과 조인
+		ON o2.ProductID = p.ProductID ;
+SELECT * FROM orderdetails3;
 
 -- 수량 조건에 따라 수량텍스트 삽입
 SELECT OrderID, Quantity,
@@ -769,7 +826,7 @@ SELECT OrderID, Quantity,
 		WHEN Quantity > 30 THEN 'The quantity is greater than 30'
 		WHEN Quantity = 30 THEN 'The quantity is 30'
 		ELSE 'The quantity is under 30'  -- ELSE: 위 조건에 모두 해당하지 않는 경우
-	END AS QuantityText  -- END: CASE 표현식의 끝 / CASE 표현식 결과를 QuantityText로 별칭
+	END AS QuantityText                 -- END: CASE 표현식의 끝 / CASE 표현식 결과를 QuantityText로 별칭
 	FROM orderdetails
 	ORDER BY Quantity;
 	
@@ -787,8 +844,8 @@ SELECT o.OrderID, SUM(o.Quantity) AS QtySum,
 -- 고객을 도시별로 정렬(도시가 NULL이면 국가별로 정렬)
 SELECT CustomerName, City, Country
 	FROM customers
-	ORDER BY
-	(CASE
+	ORDER BY (
+	CASE
 		WHEN City IS NULL THEN Country
 		ELSE City
 	END
@@ -829,6 +886,7 @@ SELECT ProductName, UnitPrice * (UnitsInstock + COALESCE(UnitsOnOrder, 0))
 
 
 -- 연산자 ===========================================================================
+USE exdb;
 
 -- ALL
 -- products 중에서 Price가 500을 초과하는 상품(결과: NULL)보다 더 비싼 상품 >> 전체 레코드 추출: 총 77개
@@ -887,10 +945,144 @@ SELECT COUNT(*) FROM customers
 	WHERE City NOT LIKE 's%'; -- 79개
 
 -- OR
+SELECT COUNT(*) FROM Customers
+	WHERE City = 'London' OR Country = 'UK'; -- 7개
+
 -- SOME
+SELECT * FROM Products
+	WHERE Price > SOME (
+		SELECT price
+		FROM Products
+		WHERE Price > 20
+		)
+	ORDER BY Price
+	LIMIT 1,10;
 
 
+-- Database ================================================================================
 
+-- create db =============================
+CREATE DATABASE testDB;
+
+-- drop db =============================
+DROP DATABASE testDB;
+
+-- create table =============================
+USE exdb;
+CREATE TABLE Persons(
+	PersonID INT,
+	LastName VARCHAR(255),
+	FirstName VARCHAR(255),
+	Adress VARCHAR(255),
+	City VARCHAR(255)
+);
+SELECT * FROM Persons;
+
+-- testTable 생성 ====
+CREATE TABLE testTable AS
+	SELECT customername, contactname
+	FROM customers;
+
+SELECT * FROM testtable;
+
+-- testTable2 생성
+CREATE TABLE testTable2 AS
+	SELECT * FROM customers;
+
+SELECT * FROM testTable2;
+
+-- drop table =============================
+DROP TABLE testtable;
+SHOW TABLES; -- testtable 삭제 확인
+
+
+-- Truncate table =======================================================
+-- 테이블은 삭제되지 않지만, 내부의 데이터는 삭제
+TRUNCATE TABLE testtable2;
+SELECT * FROM testTable2;
+
+
+-- ALTER TABLE ==========================================================
+-- ALTER TABLE - ADD: 테이블에 열 추가
+ALTER TABLE testtable2
+	ADD Email VARCHAR(255);
+SELECT * FROM testtable2; -- 마지막 열에 Email 추가된 것 확인
+
+
+-- ALTER TABLE - DROP COLUMN: 테이블에 열 삭제
+ALTER TABLE testtable2
+	DROP COLUMN Email;
+SELECT * FROM testtable2; -- 마지막 열에 Email 삭제된 것 확인
+
+
+-- ALTER TABLE - MODIFY COLUMN: 테이블의 열 데이터 유형 변경
+SHOW TABLES;
+INSERT INTO persons VALUES (1, 'Hansen', 'Ola', 'Timoteivn 10', 'Sandnes');
+INSERT INTO persons VALUES (2, 'Svendson', 'Tove', 'Borgvn 23', 'Sandnes');
+INSERT INTO persons VALUES (3, 'Pettersen', 'Kari', 'Storgt 20', 'Stavanger');
+SELECT * FROM persons;
+
+-- 마지막 열에 DateOfBirth 생성(유형: DATE)
+ALTER TABLE persons
+	ADD DateOfBirth DATE;
+SELECT * FROM persons;
+
+-- DateOfBirth 열의 유형 변경: DATE >> YEAR
+ALTER TABLE persons
+	MODIFY COLUMN DateOfBirth YEAR; 
+
+-- DateOfBirth열 이름 변경 >> YearOfBirth
+-- ALTER (TABLE 테이블 이름) CHANGE (기존열이름  새열이름  데이터타입)
+ALTER TABLE persons
+	CHANGE DateOfBirth YearOfBirth YEAR;
+SELECT * FROM persons;
+
+-- DateOfBirth 열에 값 삽입
+UPDATE persons
+	SET YearOfBirth = CASE PersonID
+		WHEN 1 THEN 2025
+		WHEN 2 THEN 2024
+		WHEN 3 THEN 2023
+		ELSE YearOfBirth
+	END
+	WHERE YearOfBirth IS NULL;
+SELECT * FROM persons;
+
+-- DateOfBirth 열 생성(유형: date)
+ALTER TABLE persons
+	ADD DateOfBirth DATE;
+SELECT * FROM persons;
+
+-- YearOfBirth를  값 삽입
+UPDATE persons
+	SET DateOfBirth = CASE
+	    WHEN YearOfBirth IS NOT NULL
+		 	THEN STR_TO_DATE(CONCAT(CAST(YearOfBirth AS CHAR), '-01-01'), '%Y-%m-%d')
+	    ELSE DateOfBirth
+	END
+	WHERE DateOfBirth IS NULL;
+SELECT * FROM persons;
+
+-- 새로운 열(여러개) 생성하고 다시 지우기
+ALTER TABLE persons
+	ADD DateOfBirth2 DATE,
+	ADD DateOfBirth3 DATE; -- 데이터 타입 같이 입력!
+SELECT * FROM persons;
+	
+ALTER TABLE persons
+	DROP COLUMN DateOfBirth2,
+	DROP COLUMN DateOfBirth3;	
+SELECT * FROM persons;
+
+
+-- 제약 조건  ==========================================================
+-- NOT NULL: 열에 NULL 값 없음
+-- UNIQUE: 열의 모든 값이 서로 다름(중복값 없음)
+-- PRIMARY KEY: UNIQUE테이블의 각 행을 고유하게 식별
+-- FOREIGN KEY: 테이블 간 링크 파괴 방지
+-- CHECK: 열 값이 특정 조건을 충족하는지 확인
+-- DEFAULT: 값이 지정되지 않은 경우, 열 기본값 설정
+-- CREATE INDEX: 데이터베이스에서 빠르게 데이터 생성/검색
 
 
 
