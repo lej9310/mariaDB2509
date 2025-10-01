@@ -126,3 +126,8 @@ USE mysql; -- 일단 다른 DB 선택
 
 USE ShopDB;
 SELECT * FROM producttbl;
+
+-- sql 불러오기(ctrl + O) >> DB백업 폴더 - ShopDB.sql >> F9 눌러서 다시 생성
+
+-- ========= 실습10 =========
+SELECT * FROM memberTBL;

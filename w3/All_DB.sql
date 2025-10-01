@@ -1053,7 +1053,7 @@ ALTER TABLE persons
 	ADD DateOfBirth DATE;
 SELECT * FROM persons;
 
--- YearOfBirth를  값 삽입
+-- YearOfBirth에 값 삽입
 UPDATE persons
 	SET DateOfBirth = CASE
 	    WHEN YearOfBirth IS NOT NULL
@@ -1085,10 +1085,422 @@ SELECT * FROM persons;
 -- CREATE INDEX: 데이터베이스에서 빠르게 데이터 생성/검색
 
 
+-- CREATE TABLE에 대한 NOT NULL 제약조건  ==============
+SHOW DATABASES;
+USE exdb;
+SELECT * FROM persons;
+
+DROP TABLE persons2;
+
+CREATE TABLE Persons2 (
+	ID INT NOT NULL,
+	LastName VARCHAR(255) NOT NULL,
+	FirstName VARCHAR(255) NOT NULL,
+	Age INT                  -- NOT NULL 빠뜨림
+);
+DESC persons2;
 
 
+-- ALTER TABLE에 대한 NOT NULL 제약조건 ===============
+ALTER TABLE persons2
+	MODIFY Age INT NOT NULL;  -- 수정: 빠뜨린 NOT NULL 추가
+SELECT * FROM Persons2;
+DESC Persons2;
 
 
+-- 1) CREATE TABLE에 대한 UNIQUE 제약조건 =================
+-- (1) 단일
+CREATE TABLE persons3(
+	ID INT NOT NULL,
+	LastName VARCHAR(255) NOT NULL,
+	FirstName VARCHAR(255),
+	age INT,
+	UNIQUE (ID)    -- ID 열에 제약 조건 생성 >> Insert into Rows (중복 ID) >> 오류
+);
+DESC Persons3;    -- ID 열: 중복 불가
+
+-- (2) 중복
+-- UNIQUE (제약 열1, 제약 열2, ...)  >>  제약열들의 조합이 유일
+-- 1길동, 2 길동, 3길동, 1지매, 2지매, 3지매, ... >> ID, LastName 내에서는 중복값이 있지만, 조합(ID+LastName)은 unique
+CREATE TABLE Persons4 (
+	ID INT NOT NULL,
+	LastName VARCHAR(255) NOT NULL,
+	FirstName VARBINARY(255),
+	Age INT,
+	CONSTRAINT UC_Person UNIQUE (ID, LastName)  -- 중복 제약조건: ID와 LastName을 조합했을때 중복 불가
+);
+DESC Persons4;
 
 
+-- 2) ALTER TABLE에 대한 UNIQUE 제약 조건 ==================
+CREATE TABLE persons5(
+	ID INT NOT NULL,
+	LastName VARCHAR(255) NOT NULL,
+	FirstName VARCHAR(255),
+	age INT	
+);
+DESC persons5;
 
+-- (1) 단일
+ALTER TABLE persons5
+	ADD UNIQUE (ID);  -- ID 열: 중복 불가
+DESC persons5;
+
+-- (2) 복합
+-- UNIQUE (제약 열1, 제약 열2, ...)  >>  제약열들의 조합이 유일
+-- 단일 컬럼이 아닌 (ID, LastName)의 조합에만 unique 제약을 거는 것이지, LastName 자체에 제약을 지정하지 않음
+ALTER TABLE persons5
+	ADD CONSTRAINT UC_Person UNIQUE (ID, LastName);
+DESC persons5;
+
+-- 고유 제약 조건 삭제
+ALTER TABLE Persons5
+	DROP INDEX UC_person;
+DESC persons5;
+
+-- 테이블에 설정된 INDEX 조회 ======================================================
+SHOW INDEX FROM persons5;
+
+SELECT * 
+	FROM information_schema.TABLE_CONSTRAINTS
+	WHERE TABLE_NAME = 'Persons5';
+
+SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE, TABLE_NAME
+	FROM information_schema.TABLE_CONSTRAINTS
+	WHERE TABLE_NAME = 'Persons5';
+
+SELECT CONSTRAINT_NAME, COLUMN_NAME, ORDINAL_POSITION
+	FROM information_schema.KEY_COLUMN_USAGE
+	WHERE TABLE_NAME = 'Person5'
+	AND CONSTRAINT_NAME = 'UC_Person';
+
+
+-- 기본 키 제약 조건 ==========================================
+-- 1) CREATE TABLE의 기본키 =============
+CREATE TABLE persons6 (
+	ID INT NOT NULL,
+	LastName VARCHAR(255) NOT NULL,
+	FirstName VARCHAR(255),
+	Age INT,
+	PRIMARY KEY (ID)
+);
+DESC persons6;
+
+-- PRIMARY KEY -- 복합 제약조건
+CREATE TABLE persons7 (
+	ID INT NOT NULL,
+	LastName VARCHAR(255) NOT NULL,
+	FirstName VARCHAR(255),
+	Age INT,
+	CONSTRAINT PK_Person PRIMARY KEY (ID, LastName)
+);
+DESC persons7;
+
+-- PRIMARY KEY테이블이 이미 생성된 경우 >> ALTER TABLE - ADD PRIMARY KEY()
+CREATE TABLE persons8 (
+	ID INT NOT NULL,
+	LastName VARCHAR(255) NOT NULL,
+	FirstName VARCHAR(255),
+	Age INT
+);
+DESC persons8;
+
+-- 2) ALTER TABLE의 기본키 =============
+-- >> 이미 테이블을 생성한 경우
+ALTER TABLE persons8 
+	ADD PRIMARY KEY (ID); -- "ID" 열에 PK 추가
+DESC persons8;
+
+-- PRIMARY KEY테이블이 이미 생성된 경우 -- 복합 제약조건
+CREATE TABLE persons9 (
+	ID INT NOT NULL,
+	LastName VARCHAR(255) NOT NULL,
+	FirstName VARCHAR(255),
+	Age INT
+);
+DESC persons9;
+
+ALTER TABLE persons9
+	ADD CONSTRAINT PK_Person PRIMARY KEY (ID, LastName);
+DESC persons9;
+
+-- 기본 키 제약 조건 삭제 >> DROP PRIMARY KEY
+ALTER TABLE persons9
+	DROP PRIMARY KEY;
+DESC persons9;
+
+
+-- 외래 키 제약조건 =======================================================
+-- persons테잉블에 새 컬럼(Age) 추가
+ALTER TABLE persons
+	ADD COLUMN Age INT;
+
+UPDATE persons
+	SET Age = CASE PersonID
+	  WHEN 1 THEN 30
+	  WHEN 2 THEN 23
+	  WHEN 3 THEN 20
+	END
+	WHERE PersonID IN (1, 2, 3);
+SELECT * FROM persons;
+DESC persons; -- 현재는 PK가 없음
+
+ALTER TABLE persons
+	ADD PRIMARY KEY (PersonID); -- "ID" 열에 PK 추가
+DESC persons; -- PK 추가됨 확인
+
+-- 1) CREATE TABLE의 외래 키 ==============
+CREATE TABLE orders2 (
+	OrderID INT NOT NULL,
+	OrderNumber INT NOT NULL,
+	PersonID INT NOT NULL,
+	PRIMARY KEY (OrderID),
+	FOREIGN KEY (PersonID) -- 참조 테이블 필요
+		REFERENCES persons(PersonID) -- 참조 테이블: 두 테이블의 공통 열 >> PersonID	
+);
+DESC orders2;
+DROP TABLE orders2;
+
+-- 
+CREATE TABLE orders2 (
+    OrderID INT NOT NULL,
+    OrderNumber int NOT NULL,
+    PersonID INT,
+    PRIMARY KEY (OrderID),
+	    CONSTRAINT FK_PersonOrder FOREIGN KEY (PersonID) -- 제약 조건 추가
+	    REFERENCES Persons(PersonID)
+);
+SHOW INDEX FROM orders2;  -- 인덱스 및 제약 조건을 확인
+
+
+-- 2) ALTER TABLE의 외래 키  ================
+-- >> 이미 테이블을 생성한 경우
+
+-- 모든 제약 조건 확인
+SELECT constraint_name, constraint_type
+	FROM information_schema.table_constraints
+	WHERE table_schema = DATABASE() -- 현재 데이터베이스
+		AND table_name = 'orders2';
+
+-- 외래키(Foreign Key) 제약조건 삭제
+ALTER TABLE orders2
+	DROP FOREIGN KEY FK_PersonOrder;
+
+-- 모든 인덱스 조회
+SELECT index_name, non_unique, COLUMN_NAME
+	FROM information_schema.statistics
+	WHERE table_schema = DATABASE() -- 현재 데이터베이스
+	AND table_name = 'orders2';
+-- 인덱스 삭제
+ALTER TABLE orders2 DROP INDEX PersonID;
+
+-- ALTER TABLE의 외래키
+ALTER TABLE orders2
+	ADD FOREIGN KEY (PersonID)
+		REFERENCES Persons(PersonID);
+DESC orders2;
+
+ALTER TABLE orders2
+	ADD CONSTRAINT FK_PersonOrder -- 외래 키 제약조건 추가
+	FOREIGN KEY (PersonID)
+		REFERENCES Persons(PersonID);
+SHOW INDEX FROM orders2;  -- 인덱스 및 제약 조건을 확인
+
+-- 외래키 제약조건 삭제
+ALTER TABLE orders2
+	DROP FOREIGN KEY FK_PersonOrder;
+
+SHOW INDEX FROM orders2;  -- 인덱스 및 제약 조건을 확인
+
+
+-- CHECK 제약조건 ====================================================
+-- 열에 배치할 수 있는 값의 범위를 제한 >> 해당 열에 대해 특정 값만 허용
+
+-- 1) CREATE TABLE의 CHECK 제약조건 ========
+-- "Persons" 테이블을 생성할 때 "Age" 열에 CHECK 제약조건을 생성
+CREATE TABLE persons10(
+	 ID int NOT NULL,
+    LastName varchar(255) NOT NULL,
+    FirstName varchar(255),
+    Age int,
+    CHECK (Age>=18)  -- 사용자의 나이가 18세 이상이어야 함을 보장
+);
+
+-- 모든 제약 조건 조회
+SELECT constraint_name, constraint_type
+	FROM information_schema.table_constraints
+	WHERE table_schema = DATABASE()
+		AND TABLE_NAME = 'persons10';
+
+-- check 제약조건 명명 & 다중 제약 조건
+CREATE TABLE persons11(
+	 ID int NOT NULL,
+    LastName varchar(255) NOT NULL,
+    FirstName varchar(255),
+    Age int,
+    City varchar(255),
+    CONSTRAINT CHK_PersonAge CHECK (Age>=18 AND City='Sandnes') 
+);
+
+-- 모든 제약 조건 조회
+SELECT constraint_name, constraint_type
+	FROM information_schema.table_constraints
+	WHERE table_schema = DATABASE()
+		AND TABLE_NAME = 'persons11';
+
+-- CHECK 제약 조건 삭제 ===================
+ALTER TABLE persons10
+	DROP CONSTRAINT CONSTRAINT_1;
+
+ALTER TABLE persons11
+	DROP CONSTRAINT CHK_PersonAge;
+
+-- 2) ALTER TABLE의 CHECK 제약조건 ========
+-- >> 이미 생성된 테이블에 제약조건을 추가하는 경우
+ALTER TABLE persons10
+	ADD CHECK (Age >=18);
+
+ALTER TABLE persons11
+	ADD CONSTRAINT CHK_PersonAge CHECK (Age >=18 AND City='Sandnes');
+	
+
+-- DEFAULT 제약 조건 ====================================================
+ALTER TABLE Person
+
+-- 1) CREATE TABLE의 DEFAULT ==============
+CREATE TABLE persons12 (
+    ID int NOT NULL,
+    LastName varchar(255) NOT NULL,
+    FirstName varchar(255),
+    Age int,
+    City varchar(255) DEFAULT 'Sandnes'  -- 테이블 생성할 때 - "City" 열에 대한 초기값 함께 설정
+);
+DESC persons12;
+
+-- 함수 사용하여 시스템 값 삽입
+CREATE TABLE orders3 (
+    ID int NOT NULL,
+    OrderNumber int NOT NULL,
+    OrderDate date DEFAULT CURRENT_DATE()  -- 함수(현재 날짜) 사용
+);
+DESC Orders3; -- Default: curdate() 확인
+
+-- 기본 제약 조건 삭제
+ALTER TABLE persons12
+	ALTER City DROP DEFAULT;
+DESC persons12; -- "City" 열에 대한 초기값 삭제 확인
+
+-- 2) ALTER TABLE의 DEFAULT  ==============
+ALTER TABLE persons12
+	ALTER City SET DEFAULT 'Sandnes'; -- 이미 생성된 테이블 - "City" 열에 초기값 설정
+DESC persons12;
+
+
+-- CREATE INDEX문 ====================================================
+--  데이터베이스에서 데이터를 더 빠르게 검색
+CREATE INDEX idx_lastname ON persons (LastName);
+SHOW INDEX FROM persons;
+
+-- 인덱스 삭제 =======
+ALTER TABLE persons
+	DROP INDEX idx_lastname;
+SHOW INDEX FROM persons;
+
+-- 다중 인덱스 =======
+CREATE INDEX idx_lastname ON persons (LastName, FirstName); -- 열 조합 인덱스 추가
+SHOW INDEX FROM persons;
+
+
+-- 자동 증가 >> AUTO_INCREMENT ===========================================
+CREATE TABLE persons13 (
+	PersonID int NOT NULL AUTO_INCREMENT,  -- 자동 증가
+   LastName varchar(255) NOT NULL,
+   FirstName varchar(255),
+   Age int,
+   PRIMARY KEY (Personid)
+);
+DESC persons13; -- auto_increment
+
+INSERT INTO persons13 (FirstName, LastName) VALUES ('Ola', 'Tove');
+INSERT INTO persons13 (FirstName, LastName) VALUES ('Tove', 'Svendson');
+INSERT INTO persons13 (FirstName, LastName) VALUES ('Kari', 'Pettersen');
+SELECT * FROM persons; -- PersonID 자동으로 1, 2, 3...
+
+-- 시퀀스를 다른 값으로 시작 
+ALTER TABLE persons13 AUTO_INCREMENT = 100;
+
+-- 새 레코드를 삽입할 때, "Personid" 열에 대한 값 지정 필요 없음
+INSERT INTO persons13 (FirstName, LastName) VALUES ('Lars', 'Monsen');
+SELECT * FROM persons13; -- PersonID: 100
+
+
+-- 날짜 =============================================================
+-- DATE: YYYY-MM-DD
+-- DATETIME: YYYY-MM-DD HH:MI:SS
+-- TIMESTAMP: YYYY-MM-DD HH:MI:SS
+-- YEAR: YYYY 또는 YY
+
+CREATE TABLE orders4 (
+	OrderId INT NOT NULL AUTO_INCREMENT,
+	ProductName VARCHAR(50) NOT NULL,
+	OrderDate DATE NOT NULL, -- DATE: YYYY-MM-DD
+	PRIMARY KEY(OrderId)
+);
+
+INSERT INTO orders4 (ProductName, OrderDate) VALUES ('Geitost', '2008-11-11');
+INSERT INTO orders4 (ProductName, OrderDate) VALUES ('Camembert Pierrot', '2008-11-09');
+INSERT INTO orders4 (ProductName, OrderDate) VALUES ('Mozzarella di Giovanni', '2008-11-11');
+INSERT INTO orders4 (ProductName, OrderDate) VALUES ('Mascarpone Fabioli', '2008-10-29');
+SELECT * FROM orders4;
+
+-- OrderDate가 "2008-11-11"인 레코드를 선택
+SELECT * FROM orders4 WHERE OrderDate = '2008-11-11';
+
+
+-- 뷰 생성/업데이트/삭제 ============================================================
+SHOW DATABASES;
+USE exdb;
+
+SELECT * FROM customers;
+
+-- 뷰 생성 >> CREATE VIEW =================
+-- SQL에서 뷰를 생성할 때는 뷰 이름에 특수문자(예: 대괄호, 빈칸 등)를 포함할 수 없음
+CREATE VIEW Brazil_Customers AS
+	SELECT CustomerName, ContactName
+	FROM Customers
+	WHERE Country = 'Brazil';
+-- 뷰 쿼리
+SELECT * FROM Brazil_Customers;
+
+
+-- "Products" 테이블에서 평균 가격보다 가격이 높은 모든 제품을 선택하는 뷰 생성
+SELECT * FROM products;
+
+CREATE VIEW Products_Above_Avg_Price AS
+	SELECT ProductName, Price
+	FROM Products
+	WHERE Price > (SELECT AVG(Price) FROM products);
+-- 뷰 쿼리
+SELECT * FROM Products_Above_Avg_Price;
+
+
+-- 뷰 업데이트 >> CREATE OR REPLACE VIEW ==========
+-- "Brazil_Customers" 뷰에 "Country", "City" 열 추가
+CREATE OR REPLACE VIEW brazil_customers AS          -- CREATE OR REPLACE VIEW
+	SELECT CustomerName, ContactName, Country, City  -- Country, City 열 추가
+	FROM Customers
+	WHERE Country = 'Brazil';
+SELECT * FROM brazil_customers;
+
+-- Products_Above_Avg_Price 테이블에 정렬 추가
+CREATE OR REPLACE VIEW Products_Above_Avg_Price AS   -- CREATE OR REPLACE VIEW
+	SELECT ProductName, Price
+	FROM Products
+	WHERE price > (SELECT AVG(Price) FROM products)
+	ORDER BY Price DESC;                              -- 정렬 추가
+SELECT * FROM Products_Above_Avg_Price;
+
+
+-- 뷰 삭제 >> DROP VIEW =========================
+DROP VIEW brazil_customers;
+DROP VIEW products_above_avg_price;
