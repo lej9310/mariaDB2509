@@ -1,5 +1,8 @@
 -- 과정평가형 문제
 
+DROP TABLE IF EXISTS Album;
+DROP TABLE IF EXISTS artist;
+
 -- 테이블 생성
 CREATE TABLE Artist (
 	ArtistNo INT PRIMARY KEY AUTO_INCREMENT,
@@ -58,8 +61,8 @@ SELECT a.ArtistName, SUM(COALESCE(b.Sales, 0)) AS TotalSales
 -- 4. Artist 테이블 수정: '아이유'의 소속사를 '카카오엔터테인먼트'로 수정
 UPDATE Artist
 	SET Agency = '카카오엔터테인먼트'
-	WHERE ArtistName = '아이유'
-SELECT * FROM Artist;
+	WHERE ArtistName = '아이유';
+SELECT * FROM artist;
 
 -- 5.  Album 테이블 데이터 삭제: AlbumNo = 1인 앨범을 삭제
 DELETE FROM Album

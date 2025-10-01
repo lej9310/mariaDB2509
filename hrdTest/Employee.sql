@@ -1,5 +1,7 @@
 -- 과정평가형 문제
 
+TABLE IF EXISTS Employee;
+
 -- 테이블 생성
 CREATE TABLE Employee (
 	EmpNo INT PRIMARY KEY AUTO_INCREMENT,

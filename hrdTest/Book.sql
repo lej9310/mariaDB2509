@@ -2,6 +2,10 @@
 CREATE DATABASE hrdtest;
 SHOW DATABASES;
 
+DROP TABLE IF EXISTS Rental;
+DROP TABLE IF EXISTS Member;
+DROP TABLE IF EXISTS book;
+
 CREATE TABLE Book (
 	BookID INT NOT NULL PRIMARY KEY,  -- PK
 	Title VARCHAR(50) NOT NULL,
@@ -39,7 +43,7 @@ SELECT * FROM book WHERE PubYear >= 2020;
 
 -- 2. '홍길동' 회원이 대출한 도서 목록 출력
 SELECT b.BookID, b.Title, b.Author, b.Publisher, b.Price, b.PubYear, r.RentDate, r.ReturnDate
-	FROM Member m
+	FROM member m
 	JOIN Rental r
 		ON m.MemberID = r.MemberID
 	JOIN Book b

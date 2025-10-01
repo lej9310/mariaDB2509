@@ -1,5 +1,7 @@
 -- 과정평가형 문제
 
+TABLE IF EXISTS ShopMember;
+
 -- 테이블 생성
 CREATE TABLE ShopMember (
 	CustNo INT PRIMARY KEY AUTO_INCREMENT,
@@ -8,7 +10,7 @@ CREATE TABLE ShopMember (
 	Address VARCHAR(50),
 	JoinDate DATE NOT NULL,
 	Grade CHAR(1),
-	CHECK (Grade IN ('A', 'B', 'C')) ,
+	CHECK (Grade IN ('A', 'B', 'C')),
 	City CHAR(2)
 );
 
@@ -23,6 +25,7 @@ CREATE TABLE Sale (
 		REFERENCES shopmember(CustNo)
 );
 DESC Sale;
+
 
 -- SQL 작성
 -- 1. 회원등록: ShopMember 테이블에 데이터 삽입
